@@ -1,52 +1,87 @@
 # 3. Configurazione di Limine
 
-Limine ha bisogno di sapere dove si trova il kernel e con quale protocollo caricarlo. Queste informazioni si scrivono in un file di configurazione.
+Limine ha bisogno di sapere dove si trova il kernel e con quale protocollo caricarlo. Queste informazioni si scrivono in `limine.conf`.
 
-## Specifiche del file `limine.conf`
+## Formato del file
 
-| Proprietà | Valore | Descrizione |
-|-----------|--------|-------------|
-| Timeout | 0 | avvia immediatamente, senza menu interattivo |
-| Voce di boot | `Sicania` | nome visualizzato nel menu |
-| Protocollo | `limine` | protocollo nativo Limine |
-| Percorso kernel | `boot:/sicania.elf` | posizione del kernel nell'immagine |
+```
+TIMEOUT=0
+
+:Nome voce
+    PROTOCOL=limine
+    KERNEL_PATH=boot:/kernel.elf
+```
+
+Il file ha una sezione globale (`TIMEOUT`) e una o più voci di boot (che iniziano con `:`).
+
+## Specifica della configurazione
+
+| Direttiva | Valore per Sicania | Descrizione |
+|-----------|-------------------|-------------|
+| `TIMEOUT` | `0` | secondi di attesa prima del boot automatico. `0` = immediato |
+| Voce | `:Sicania` | nome visualizzato nel menu di boot |
+| `PROTOCOL` | `limine` | protocollo nativo Limine |
+| `KERNEL_PATH` | `boot:/sicania.elf` | percorso del kernel ELF dentro l'immagine |
 
 ### TIMEOUT
 
-Il timeout dice a Limine quanto aspettare prima di avviare la voce predefinita. Con `0`, parte subito. In futuro, quando avremo più voci di boot (kernel normale, modalità provvisoria, test), potremo aumentarlo.
+```
+TIMEOUT=0   → avvia immediatamente (sviluppo)
+TIMEOUT=5   → mostra menu per 5 secondi (debug/produzione)
+```
+
+Durante lo sviluppo vogliamo `0` per non aspettare. In futuro, con più voci di boot (kernel normale, modalità provvisoria, test), lo imposteremo a qualche secondo.
 
 ### PROTOCOL
 
-Limine supporta più protocolli: `limine` (nativo), `multiboot2`, `stivale`, ecc. Noi usiamo `limine`, il protocollo nativo, che dà accesso a tutte le funzionalità del bootloader (mappa memoria, moduli, framebuffer, ecc.).
+Limine supporta diversi protocolli di boot:
+
+```
+Protocollo   Uso
+──────────   ─────────────────────────────────
+limine       protocollo nativo (usiamo questo)
+multiboot2   compatibilità con GRUB
+stivale      protocollo alternativo leggero
+```
+
+Noi usiamo `limine`, che dà accesso a tutte le funzionalità: mappa memoria, moduli, framebuffer, ACPI, SMBIOS, ecc.
 
 ### KERNEL_PATH
 
-Indica dove trovare il kernel ELF dentro l'immagine ISO. Il percorso è relativo alla radice dell'immagine. `boot:/sicania.elf` significa che il file `sicania.elf` va messo in `boot/` dentro l'ISO.
+Il percorso è relativo alla radice del filesystem dell'immagine ISO:
 
-### Perché serve
+```
+Percorso                     Posizione nell'ISO
+─────────                    ──────────────────
+boot:/sicania.elf             /boot/sicania.elf
+:/kernel.elf                  /kernel.elf
+boot:/sub/dir/kernel.elf      /boot/sub/dir/kernel.elf
+```
 
-Senza questo file, Limine non sa che cosa caricare. Il bootloader cerca `limine.conf` nella radice del supporto di avvio (ISO, disco, immagine). Se non lo trova, mostra un errore.
+Noi useremo `boot:/sicania.elf`. Il kernel va copiato in `iso/boot/sicania.elf` quando creiamo l'immagine.
 
-## Cosa succede al boot
+## Catena del boot con Limine
 
-1. Il firmware (UEFI) carica Limine
-2. Limine cerca `limine.conf`
-3. Legge la voce `:Sicania`
-4. Trova il kernel a `boot:/sicania.elf`
-5. Lo carica in memoria, prepara le strutture dati
-6. Salta all'entry point `_start`
+```mermaid
+graph TD
+    P["Accensione"] --> BIOS["Firmware UEFI<br/>inizializza la macchina<br/>cerca limine-cd.bin"]
+    BIOS --> LIM["Limine bootloader<br/>legge limine.conf<br/>trova voce :Sicania<br/>carica sicania.elf<br/>prepara page table, stack<br/>azzera .bss"]
+    LIM --> K["Kernel Sicania<br/>salta a _start<br/>prende il controllo<br/>non lo lascia piu"]
+```
 
 ## Relazioni
 
 ```
 limine.conf
-  └─ dice a Limine dove trovare il kernel
-       └─ kernel ELF → caricato in RAM
-            └─ entry point _start → eseguito
+    │
+    ├── PROTOCOL=limine     → richiede che il kernel usi il protocollo Limine
+    ├── KERNEL_PATH=...     → il kernel deve essere copiato in ISO/boot/
+    └── ENTRY=_start        → il linker script deve definire _start
 ```
 
 ## Rischi
 
-- Se il percorso non corrisponde alla struttura dell'ISO, Limine non trova il kernel
-- Se il protocollo non corrisponde a quello atteso dal kernel, il boot fallisce
-- Se il timeout è troppo alto, lo sviluppo diventa lento (dovendo aspettare ogni volta)
+- **Percorso sbagliato**: se `KERNEL_PATH` non corrisponde alla struttura ISO, Limine non trova il kernel
+- **Protocollo errato**: se usiamo `PROTOCOL=multiboot2` ma il kernel parla Limine, il boot fallisce
+- **Timeout alto in sviluppo**: se dimentichiamo `TIMEOUT=0`, perdiamo 10 secondi a ogni boot
+- **Formato del file**: spazi, tab, maiuscole/minuscole contano. Seguire esattamente il formato documentato

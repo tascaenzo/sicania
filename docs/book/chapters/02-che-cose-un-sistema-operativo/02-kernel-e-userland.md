@@ -4,43 +4,88 @@ Il kernel è la parte del sistema operativo che gira in modalità privilegiata. 
 
 I programmi normali girano in *userland* (spazio utente). Non possono eseguire istruzioni privilegiate, non possono accedere direttamente all'hardware, non possono leggere la memoria del kernel o di altri processi.
 
+## I tre livelli
+
 ```
-┌─────────────────────┐
-│   programmi utente   │  ← userland (non privilegiato)
-├─────────────────────┤
-│       kernel         │  ← modalità privilegiata
-├─────────────────────┤
-│       hardware       │
-└─────────────────────┘
+┌─────────────────────────────────────┐
+│         USERLAND                    │
+│  (programmi, librerie, shell)       │
+│  modalità: ring 3                   │
+│  NON può: istruzioni privilegiate   │
+│           accesso diretto hardware   │
+│           memoria del kernel         │
+├─────────────────────────────────────┤
+│         KERNEL                      │
+│  (scheduler, driver, memoria, ...)  │
+│  modalità: ring 0                   │
+│  PUÒ: tutto                         │
+├─────────────────────────────────────┤
+│         HARDWARE                    │
+│  CPU, RAM, disco, rete, ...        │
+└─────────────────────────────────────┘
+         ↑
+    transizioni controllate
+    (syscall, interrupt, eccezioni)
 ```
 
 ## Cosa fa il kernel
 
-Il kernel di Sicania si occupa almeno di:
-
-- **inizializzazione**: riceve il controllo dal bootloader, prepara la macchina
-- **memoria**: gestisce la memoria fisica e virtuale
-- **interrupt ed eccezioni**: reagisce a eventi hardware e errori della CPU
-- **processi e thread**: crea, schedula e termina attività
-- **syscall**: fornisce servizi ai programmi utente
-- **driver**: comunica con i dispositivi
-- **diagnostica**: produce log e gestisce i guasti
+```
+ kernel
+ ├── boot e inizializzazione
+ │    riceve il controllo, prepara la macchina
+ │
+ ├── memoria
+ │    gestisce pagina fisica e virtuale
+ │
+ ├── interrupt ed eccezioni
+ │    reagisce a eventi hardware ed errori CPU
+ │
+ ├── processi e thread
+ │    crea, schedula, termina attività
+ │
+ ├── syscall
+ │    servizi ai programmi utente
+ │
+ ├── driver
+ │    comunica con dispositivi
+ │
+ └── diagnostica
+      log, panic, arresto controllato
+```
 
 ## Cosa NON fa il kernel
 
 Il kernel è la parte minima e privilegiata. Molte cose che associ a un "sistema operativo" in realtà girano in userland:
 
-- shell e comandi
-- librerie (libc, ecc.)
-- server grafico
-- servizi di rete
-- filesystem (in alcune architetture)
-- driver (in alcune architetture)
+```
+Userland:
+  shell, comandi, servizi
+  libreria C standard
+  server grafico
+  server di rete
+  filesystem (in alcune architetture)
+  driver (in alcune architetture)
+```
 
 Sicania inizialmente terrà quasi tutto nel kernel (architettura monolitica), ma i sottosistemi saranno progettati con confini chiari. In futuro, potremo spostare servizi in userland senza riscrivere tutto.
 
-## Questa distinzione è importante perché
+## Perché questa distinzione conta
 
-Quando scriverai codice per Sicania, devi sapere se stai scrivendo kernel o userland. Nel kernel non hai librerie standard, non hai `malloc`, non hai `printf`, non hai protezione dalla memoria. Se sbagli, non ricevi un errore: la macchina si blocca.
+```
+┌──────────────────────────────────────────────┐
+│  KERNEL:                                      │
+│  - nessuna libreria C (no printf, no malloc)  │
+│  - nessuna protezione dalla memoria           │
+│  - se sbagli: la macchina si blocca           │
+│  - devi parlare direttamente con l'hardware   │
+├──────────────────────────────────────────────┤
+│  USERLAND:                                    │
+│  - hai la libc                                │
+│  - la memoria è protetta                      │
+│  - se sbagli: segmentation fault, non crash   │
+│  - chiami il kernel via syscall               │
+└──────────────────────────────────────────────┘
+```
 
-È proprio questo che rende la programmazione di kernel così formativa.
+Quando scriverai codice per Sicania, devi sapere in che livello stai operando. La programmazione kernel è così formativa proprio perché toglie ogni rete di sicurezza.

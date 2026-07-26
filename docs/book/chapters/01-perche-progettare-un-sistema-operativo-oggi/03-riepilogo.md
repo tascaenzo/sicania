@@ -1,7 +1,11 @@
 # 3. Riepilogo
 
-Sicania è un sistema operativo didattico costruito insieme al libro che lo spiega.
-
-Non imparerai i sistemi operativi leggendo. Imparerai scrivendo codice, compilandolo, eseguendolo e vedendo cosa succede.
+```
+Sicania:
+  ├─ kernel funzionante (x86-64, Limine, QEMU)
+  ├─ specifica che guida il codice (.md → .c)
+  ├─ test automatici (nessuna feature non verificata)
+  └─ percorso didattico: un problema per capitolo
+```
 
 Il prossimo capitolo risponde a una domanda che sembra banale ma non lo è: che cos'è, esattamente, un sistema operativo?

@@ -2,6 +2,20 @@
 
 Ci sono già tanti progetti didattici di sistemi operativi. Cosa aggiunge Sicania?
 
+## Confronto con altri approcci
+
+```
+                          xv6    Linux da zero    Sicania
+                          ────   ─────────────    ───────
+Linguaggio                C       C                C
+Target                    x86     x86-64           x86-64
+Bootloader                nessuno Limine           Limine
+Build system              Makefile custom         Meson/Ninja
+Test automatici           no      no               sì
+Libro / specifica         codice  nessuno          specifica .md
+Separazione doc/codice    doc     no              doc guida codice
+```
+
 ## Didattico ma vero
 
 Sicania non è un giocattolo. Fa cose vere:
@@ -15,9 +29,15 @@ Le semplificazioni sono dichiarate. Non nascondiamo la complessità, la riduciam
 
 ## Il libro guida il codice
 
-In molti progetti il codice viene prima e la documentazione dopo. In Sicania il libro è la fonte principale: ogni decisione è spiegata nel capitolo che la introduce.
+```
+Altri progetti:
+  codice prima → documentazione dopo (se va bene)
+  La documentazione insegue il codice, spesso arretrata.
 
-Questo non significa che il libro sia una specifica ast ratta. Significa che quando leggi il codice, sai già perché è stato scritto così.
+Sicania:
+  specifica prima → codice dopo
+  Il codice realizza la specifica. La specifica non cambia senza讨论.
+```
 
 ## Build system vero
 

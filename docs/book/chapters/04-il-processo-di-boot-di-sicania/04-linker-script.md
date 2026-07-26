@@ -1,43 +1,112 @@
-# 4. Il linker script
+# 4. Linker script
 
-Il linker script dice a `ld` come organizzare il kernel in memoria: quali sezioni, in che ordine, a quali indirizzi.
+Il linker script dice a `ld` come organizzare l'ELF del kernel: quali sezioni includere, in che ordine, a quali indirizzi virtuali.
 
-## `kernel/arch/x86_64/link.ld`
+## Layout della memoria virtuale del kernel
 
-```ld
-OUTPUT_FORMAT(elf64-x86-64)
-ENTRY(_start)
+```
+Spazio di indirizzamento x86-64 (48 bit canonici)
 
-SECTIONS
-{
-    . = 0xFFFFFFFF80000000 + 0x100000;
-
-    .text : {
-        *(.text .text.*)
-    }
-
-    .rodata : {
-        *(.rodata .rodata.*)
-    }
-
-    .data : {
-        *(.data .data.*)
-    }
-
-    .bss : {
-        *(COMMON)
-        *(.bss .bss.*)
-    }
-}
+0x0000000000000000
+    ┌──────────────────────┐
+    │                      │
+    │   SPAZIO UTENTE     │   processi, programmi, librerie
+    │                      │   (non accessibile dal kernel? sì,
+    │                      │    ma con permessi separati)
+    │                      │
+    ├──────────────────────┤ 0x00007FFFFFFFFFFF
+    │                      │
+    │   CANONICAL GAP      │   spazio non indirizzabile
+    │                      │   (errore se usato)
+    ├──────────────────────┤ 0xFFFFFFFF80000000
+    │                      │
+    │   HIGHER HALF        │
+    │   ┌──────────────┐   │
+    │   │ .text        │   │  codice kernel
+    │   ├──────────────┤   │
+    │   │ .rodata      │   │  costanti
+    │   ├──────────────┤   │
+    │   │ .data        │   │  dati inizializzati
+    │   ├──────────────┤   │
+    │   │ .bss         │   │  zero-inizializzato
+    │   │              │   │  contiene lo stack (16KB)
+    │   └──────────────┘   │
+    │                      │
+    └──────────────────────┘ 0xFFFFFFFFFFFFFFFF
 ```
 
-Cosa fa ogni parte:
+## Specifica del linker script
 
-- `OUTPUT_FORMAT(elf64-x86-64)`: produciamo un ELF a 64 bit
-- `ENTRY(_start)`: il punto di ingresso è il simbolo `_start`
-- `. = 0xFFFFFFFF80000000 + 0x100000`: il kernel viene caricato all'indirizzo virtuale `0xFFFFFFFF80100000`. Questo è un indirizzo del *higher half* (la metà alta dello spazio virtuale), tipico dei kernel x86-64. Lo spazio utente starà negli indirizzi bassi, il kernel in quelli alti.
-- Le sezioni `.text`, `.rodata`, `.data`, `.bss` contengono rispettivamente codice, costanti, dati e dati zero-inizializzati
+### OUTPUT_FORMAT
 
-Il `.bss` è importante: contiene le variabili globali non inizializzate (come lo stack). Il bootloader deve azzerare questa sezione prima di saltare al kernel.
+```
+OUTPUT_FORMAT(elf64-x86-64)
+```
 
-Limine legge l'ELF del kernel e usa il linker script per capire dove mappare ogni sezione in memoria virtuale.
+Il linker produce un ELF a 64 bit per x86-64. Questo è il formato che Limine si aspetta.
+
+### ENTRY
+
+```
+ENTRY(_start)
+```
+
+L'entry point è il simbolo `_start`, definito in `entry.asm` con `global _start`. Quando Limine carica l'ELF, legge questo simbolo e salta al suo indirizzo.
+
+### Indirizzo base
+
+```
+. = 0xFFFFFFFF80000000 + 0x100000;
+```
+
+Il kernel viene caricato all'indirizzo virtuale `0xFFFFFFFF80100000` (4 MB + 1 MB dentro il higher half). Questo indirizzo:
+
+- è nel **higher half** (non accessibile da ring 3)
+- è allineato a 4 KB (page granularity)
+- è sufficientemente alto da lasciare spazio per i mapping delle strutture dati del bootloader
+
+### Sezioni
+
+```
+Sezione    Tipo contenuto    Esempi
+────────   ───────────────   ─────────────────
+.text      codice eseguibile   entry.asm, funzioni C
+.rodata    dati di sola lettura stringhe, tabelle costanti
+.data      dati inizializzati variabili globali con valore
+.bss       zero-inizializzato  stack, variabili senza valore iniziale
+```
+
+### Il `.bss` in dettaglio
+
+Il `.bss` è speciale: non occupa spazio nel file ELF, ma occupa spazio in memoria. Contiene tutte le variabili globali senza inizializzazione esplicita.
+
+```
+File ELF (su disco)           Memoria (al boot)
+┌──────────────────┐         ┌──────────────────┐
+│ .text (codice)   │  load   │ .text            │
+│ .rodata          │  ────→  │ .rodata          │
+│ .data (valori)   │         │ .data            │
+│ .bss (0 byte)    │         │ .bss (16 KB)     │
+└──────────────────┘         │   ↓              │
+                             │  azzerato!       │
+                             └──────────────────┘
+```
+
+Limine azzera il `.bss` prima di saltare al kernel. Questo garantisce che lo stack parta pulito.
+
+## Relazioni
+
+```
+link.ld
+  ├─ ENTRY(_start)       → entry.asm (definisce _start)
+  ├─ sezione .text       → codice di entry.asm, kernel.c, serial.c
+  ├─ sezione .bss        → stack di entry.asm
+  └─ indirizzo base       → Limine per mappare il kernel
+```
+
+## Rischi
+
+- **Indirizzo base sbagliato**: se non coincide con ciò che Limine/Linker si aspettano, page fault immediato
+- **BSS non azzerato**: lo stack contiene spazzatura, il kernel crasha alla prima chiamata di funzione
+- **Entry point errato**: se `_start` non è definito, il linker dà errore "undefined reference"
+- **Sezioni mancanti**: se dimentichiamo una sezione (es. `.limine_reqs`), il protocollo Limine non funziona

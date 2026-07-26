@@ -2,72 +2,190 @@
 
 Il build system si occupa di compilare i file assembly e C, linkarli insieme e produrre un ELF x86-64 valido per il bootloader.
 
-## Specifiche del build system
+## Diagramma di compilazione
 
-Il sistema di build deve:
+```mermaid
+graph TD
+    ASM["entry.asm"] --> NASM["nasm -f elf64<br/>-mno-red-zone<br/>-mno-mmx -mno-sse"]
+    NASM --> EO["entry.o"]
+    KC["kernel.c"] --> GCC["gcc -ffreestanding<br/>-mno-red-zone<br/>-mno-mmx -mno-sse<br/>-nostdlib"]
+    GCC --> KO["kernel.o"]
+    SC["serial.c"] --> GCC2["gcc -ffreestanding<br/>-mno-red-zone<br/>-mno-mmx -mno-sse"]
+    GCC2 --> SO["serial.o"]
+    EO --> LD["ld -T link.ld<br/>-nostdlib<br/>-z max-page-size=0x1000"]
+    KO --> LD
+    SO --> LD
+    LD --> ELF["sicania.elf<br/>ELF64 x86-64<br/>entry: _start<br/>higher half"]
+```
 
-1. **Compilare l'assembly**: `entry.asm` → `.o` (formato ELF64, oggetto x86-64)
-2. **Compilare il C**: `kernel.c`, `serial.c` → `.o` (freestanding, nessuna libreria standard)
-3. **Linkare il tutto**: oggetti + linker script → `sicania.elf`
-4. **Produrre un ELF eseguibile**: formato ELF64 x86-64, con entry point `_start`
+## Specifica del build system
 
-## Opzioni di compilazione C richieste
+### Obiettivi
 
-| Opzione | Motivo |
-|---------|--------|
-| `-ffreestanding` | nessuna libreria C standard disponibile |
-| `-mno-red-zone` | la red zone (128 byte sotto RSP) è pericolosa con interrupt |
-| `-mno-mmx -mno-sse -mno-sse2` | non usare istruzioni SIMD/FPU (non salviamo XMM) |
-| `-nostdlib` | non linkare libc |
-| `-Wall -Wextra` | tutti i warning |
-| `-O2` | ottimizzazione (si può usare anche `-Os`) |
+| Obiettivo | Descrizione |
+|-----------|-------------|
+| Compilare `entry.asm` | nasm → `entry.o` (ELF64 x86-64) |
+| Compilare `kernel.c` | gcc freestanding → `kernel.o` |
+| Compilare `serial.c` | gcc freestanding → `serial.o` |
+| Linkare tutto + link.ld | ld → `sicania.elf` |
+| Prodotto finale | ELF64 x86-64 con entry point `_start` |
 
-## Opzioni di linking richieste
+### Opzioni compilatore C
 
-| Opzione | Motivo |
-|---------|--------|
-| `-T link.ld` | usa il linker script custom |
-| `-nostdlib` | non linkare startup code/libc |
-| `-z max-page-size=0x1000` | allinea sezioni a 4 KB |
+Ogni opzione ha un motivo preciso:
 
-## File coinvolti
+```
+Opzione                  Spiega
+───────────────────────  ─────────────────────────────────
+-ffreestanding           nessuna libreria C (no printf,
+                         no malloc, no startup code)
+-mno-red-zone            la red zone (128 byte sotto RSP)
+                         viene sovrascritta dagli interrupt.
+                         Nel kernel va disabilitata.
+-mno-mmx                 non usare registri MMX
+-mno-sse                 non usare registri XMM (non
+                         salviamo/ripristiniamo stato SSE
+                         durante interrupt/context switch)
+-mno-sse2                idem per SSE2
+-Wall -Wextra            tutti i warning
+-O2                      ottimizzazione standard
+```
 
-| File | Contenuto | Compilatore/Strumento |
-|------|-----------|----------------------|
-| `arch/x86_64/boot/entry.asm` | entry point assembly | nasm (elf64) |
-| `kernel.c` | kernel main | gcc/clang (freestanding) |
-| `serial.c` | driver seriale | gcc/clang (freestanding) |
-| `serial.h` | header seriale | incluso dal C |
-| `arch/x86_64/link.ld` | linker script | ld |
+### Opzioni linker
+
+```
+Opzione                  Spiega
+───────────────────────  ─────────────────────────────────
+-T link.ld               usa il nostro linker script
+-nostdlib                non cercare libc o startup code
+-z max-page-size=0x1000  allinea sezioni a 4 KB (pagina
+                         minima), non a 2 MB
+```
+
+### Opzioni assembler
+
+```
+Opzione                  Spiega
+───────────────────────  ─────────────────────────────────
+-f elf64                 produce oggetto ELF64 x86-64
+```
 
 ## Output
 
-Il prodotto finale è un file `sicania.elf`, ELF64 x86-64, che Limine carica in memoria.
-
-## Perché Meson
-
-Meson è il build system scelto per Sicania per questi motivi:
-
-- dichiarativo (si descrive cosa compilare, non come)
-- genera file Ninja ottimizzati (compilazione parallela)
-- usato da progetti reali (systemd, Mesa, Xorg)
-- supporto nativo per cross-compilazione
-- gestione automatica delle dipendenze
-
-## Alternative
-
-Lo stesso risultato si può ottenere con un Makefile. Meson aggiunge complessità iniziale ma semplifica la gestione quando il progetto cresce (decine di file, cross-compilazione, test automatizzati).
-
-## Relazioni
+Il prodotto finale è `sicania.elf`:
 
 ```
-nasm (entry.asm) ─┐
-gcc (kernel.c) ───┼─ ld + link.ld → sicania.elf
-gcc (serial.c) ───┘
+$ file sicania.elf
+sicania.elf: ELF 64-bit LSB executable, x86-64, version 1 (SYSV),
+statically linked, not stripped
+
+$ readelf -h sicania.elf | head
+ELF Header:
+  Class:                             ELF64
+  Entry point address:               0xffffffff80100000
+  ...
+
+$ nm sicania.elf | grep _start
+ffffffff80100000 T _start
 ```
+
+## File di build
+
+Meson richiede tre file:
+
+```
+sicania/
+├── meson.build                (radice: definisce il progetto)
+├── kernel/
+│   ├── meson.build            (kernel: sorgenti e flag)
+│   └── arch/x86_64/
+│       └── meson.build        (x86_64: riferimenti a entry.asm e link.ld)
+```
+
+### `meson.build` radice
+
+```
+project('sicania', 'c',
+    default_options: ['c_std=c17']
+)
+subdir('kernel')
+```
+
+Definisce il progetto C "sicania" e include il file `kernel/meson.build`.
+
+### `kernel/arch/x86_64/meson.build`
+
+Espone le variabili `entry` e `linker_script` per il build principale:
+
+```
+entry = files('boot/entry.asm')
+linker_script = files('link.ld')
+```
+
+### `kernel/meson.build`
+
+Il cuore della build. Definisce l'eseguibile `sicania.elf` con tutti i sorgenti e i flag:
+
+```
+subdir('arch/x86_64')   ← carica entry e linker_script
+
+nasm = find_program('nasm')
+
+elf = executable('sicania.elf',
+    entry,                ← entry.asm
+    'kernel.c',
+    'serial.c',
+    c_args: [
+        '-ffreestanding',
+        '-mno-red-zone',
+        '-mno-mmx',
+        '-mno-sse',
+        '-mno-sse2',
+        '-Wall', '-Wextra',
+        '-O2',
+        '-std=c99',
+    ],
+    link_args: [
+        '-Wl,-T', linker_script,
+        '-nostdlib',
+        '-z', 'max-page-size=0x1000',
+    ],
+    nasm_args: ['-f', 'elf64'],
+)
+```
+
+## Comandi di compilazione
+
+```
+# Prima configurazione
+meson setup build
+
+# Compilazione (da ripetere dopo ogni modifica)
+ninja -C build
+
+# L'ELF prodotto
+build/kernel/sicania.elf
+```
+
+## Alternativa: Makefile
+
+Lo stesso risultato si può ottenere con un Makefile. Meson aggiunge complessità iniziale ma:
+
+- compilazione parallela automatica
+- ricompilazione solo dei file modificati
+- cross-compilazione nativa
+- gestione dipendenze (file `.d`)
+- integrazione test
+
+Per i primi capitoli, se Meson sembra eccessivo, un Makefile di 15 righe può bastare. Passeremo a Meson quando il progetto crescerà.
 
 ## Rischi
 
-- Se `-mno-red-zone` manca, interrupt o eccezioni possono corrompere lo stack
-- Se `-nostdlib` manca, il linker cerca funzioni libc inesistenti e fallisce
-- Se `-z max-page-size=0x1000` manca, il linker può usare allineamento 2 MB, incompatibile con le page table minime
+| Rischio | Conseguenza | Prevenzione |
+|---------|-------------|-------------|
+| Manca `-mno-red-zone` | interrupt corrompe stack | doppio controllo meson.build |
+| Manca `-ffreestanding` | linker cerca `__libc_init` → errore | flag obbligatorio |
+| Manca `-T link.ld` | linker layout default → crash page fault | flag obbligatorio |
+| Manca `-nostdlib` | linker cerca startup code → errore | flag obbligatorio |
+| `nasm` non trovato | errore build | installare nasm |
+| `meson setup` non eseguito | errore build | eseguire prima `meson setup build` |

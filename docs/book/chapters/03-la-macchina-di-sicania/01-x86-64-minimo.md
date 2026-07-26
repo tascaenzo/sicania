@@ -2,56 +2,182 @@
 
 Un processore x86-64 è una macchina a stati. Ha registri, esegue istruzioni, genera eventi. Per scrivere un kernel devi conoscere solo le parti che il kernel usa.
 
+## Modello di esecuzione
+
+```
+                        CPU
+       ┌─────────────────────────────────┐
+       │  Registri generali (16 × 64 bit)│
+       │  RAX RBX RCX RDX RSI RDI       │
+       │  RBP RSP  R8-R15               │
+       ├─────────────────────────────────┤
+       │  RIP → prossima istruzione      │
+       │  RFLAGS → flag di stato         │
+       ├─────────────────────────────────┤
+       │  CR3 → radice page table        │
+       │  IDTR → base IDT                │
+       └─────────────────────────────────┘
+                 │
+    ┌────────────┴────────────┐
+    │                         │
+  esegue                    genera
+ istruzioni                eventi
+    │                  (eccezioni,
+    │                   interrupt,
+    │                   syscall)
+    ▼                         │
+  RAM ──── page table ────────┘
+```
+
 ## Registri
 
-La CPU ha 16 registri generali a 64 bit:
+La CPU ha 16 registri generali a 64 bit. Si usano per operazioni aritmetiche, puntatori, parametri:
 
 ```
-RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP
-R8,  R9,  R10, R11, R12, R13, R14, R15
+63                               0
+┌────────────────────────────────┐
+│            RAX                 │  accumulatore
+├────────────────────────────────┤
+│            RBX                 │  base
+├────────────────────────────────┤
+│            RCX                 │  contatore
+├────────────────────────────────┤
+│            RDX                 │  dati
+├────────────────────────────────┤
+│            RSI                 │  sorgente (stringhe, argomento syscall)
+├────────────────────────────────┤
+│            RDI                 │  destinazione (argomento syscall)
+├────────────────────────────────┤
+│            RBP                 │  base frame
+├────────────────────────────────┤
+│            RSP ←── STACK       │  stack pointer
+├────────────────────────────────┤
+│          R8 - R15              │  extra
+└────────────────────────────────┘
 ```
 
-Più due registri speciali:
+### Registri speciali
 
-- **RIP** (instruction pointer): contiene l'indirizzo della prossima istruzione
-- **RFLAGS**: contiene flag di stato (zero, carry, interrupt enable, ecc.)
+```
+RIP (instruction pointer)         → indirizzo della prossima istruzione
+RFLAGS                            → bandiere: ZF, CF, IF (interrupt), DF
+CR0, CR2, CR3, CR4               → registri di controllo
+  CR3 = radice delle page table  → dice dove sono le tabelle di traduzione
+IDTR                              → base e limite della IDT
+GDTR                              → base e limite della GDT
+```
 
-**RSP** è lo stack pointer. Puntano **RBP** alla base del frame corrente.
+## Privilegio: i ring
 
-## Privilegio
+x86-64 ha 4 livelli di privilegio chiamati *ring*. Noi useremo solo 2:
 
-x86-64 ha 4 livelli di privilegio chiamati *ring*. Noi useremo solo:
+```
+                    Più privilegio
+                    ▲
+              ┌─────┴─────┐
+              │  Ring 0   │ ← KERNEL (può tutto)
+              ├───────────┤
+              │  Ring 1   │ ← inutilizzato
+              ├───────────┤
+              │  Ring 2   │ ← inutilizzato
+              ├───────────┤
+              │  Ring 3   │ ← USER (limitato)
+              └───────────┘
+                    │
+                    ▼ Meno privilegio
+```
 
-- **Ring 0** (kernel mode): può tutto
-- **Ring 3** (user mode): limitato
+Il livello corrente è determinato dai 2 bit bassi del segmento CS. Il kernel imposta CS per decidere il privilegio.
 
-Il livello corrente è determinato dai bit CS (code segment). Il kernel imposta il CS per decidere se il codice in esecuzione è privilegiato o no.
+Transizioni possibili:
+
+```
+Ring 3 → Ring 0: syscall, interrupt, eccezione
+Ring 0 → Ring 3: iretq, sysret
+```
 
 ## Memoria virtuale
 
-La CPU non accede direttamente alla RAM. Usa la **memoria virtuale**: ogni indirizzo passa attraverso le *page table*, che lo traducono in un indirizzo fisico.
+La CPU non accede direttamente alla RAM. Ogni indirizzo passa attraverso le *page table*:
 
 ```
-indirizzo virtuale → page table → indirizzo fisico → RAM
+Indirizzo virtuale (64 bit)
+  ┌────┬────┬────┬────┬──────────┐
+  │ L4 │ L3 │ L2 │ L1 │ offset  │
+  └─┬──┴─┬──┴─┬──┴─┬──┴────┬────┘
+    │    │    │    │       │
+    ▼    ▼    ▼    ▼       ▼
+  PML4  PDP   PD    PT    pagina
+  (512) (512) (512) (512) (4096 byte)
+    │     │     │     │
+    └─────┴─────┴─────┴──→ RAM (indirizzo fisico)
 ```
 
-Questo serve a:
+A ogni livello, la CPU prende `n` bit dall'indirizzo virtuale, li usa come indice in una tabella, legge il puntatore al livello successivo, e continua fino a trovare l'indirizzo fisico.
 
-- isolare i processi (ognuno ha le sue page table)
-- proteggere il kernel (le pagine del kernel sono invisibili ai programmi)
-- permettere mapping flessibili (la memoria fisica può essere frammentata)
+```
+indirizzo virtuale                   indirizzo fisico
+     0xFFFF800010004000    ────→         0x200000
+            │                                ▲
+            ▼                                │
+      PML4[511] ──→ PDP[0] ──→ PD[0] ──→ PT[4] ──→ frame 0x200000
+```
 
-La tabella ha 4 livelli. Ogni pagina è tipicamente 4096 byte. Le page table sono strutture dati in RAM che il kernel alloca e configura.
+### Perché la memoria virtuale
+
+```
+Problema                      Soluzione
+──────────────────────────────────────────────────────
+due processi allo stesso      ogni processo ha le
+indirizzo                     proprie page table → isolamento
+programma vede frammentazione il kernel mappa memoria
+fisica                        contigua virtualmente
+kernel deve essere protetto   pagine kernel non accessibili
+da user space                 da ring 3
+```
 
 ## Eventi
 
 La CPU genera eventi che interrompono il flusso normale:
 
-- **eccezioni**: errori sincroni (divisione per zero, page fault, istruzione invalida)
-- **interrupt**: eventi asincroni (timer, tastiera, disco)
-- **syscall**: richieste volontarie dai programmi utente
+```
+Evento            Causa                    Sincrono?
+────────          ─────                    ─────────
+eccezione (fault) divisione per zero,      sì (dovuto
+                   page fault              a un'istruzione)
+interrupt         timer, scheda di rete,   no (arriva quando
+                   tastiera                arriva)
+syscall           chiamata volontaria      sì
+                   da un programma
+```
 
-Per gestirli, il kernel installa una **IDT** (Interrupt Descriptor Table): una tabella che dice alla CPU quale funzione chiamare per ogni evento.
+Per gestirli, il kernel installa una IDT (Interrupt Descriptor Table):
+
+```
+IDT
+┌──────┐
+│ 0    │ → #DE (division error)
+├──────┤
+│ 1    │ → #DB (debug)
+├──────┤
+│ ...  │
+├──────┤
+│ 13   │ → #GP (general protection)
+├──────┤
+│ 14   │ → #PF (page fault)
+├──────┤
+│ ...  │
+├──────┤
+│ 32   │ → IRQ0 (timer)
+├──────┤
+│ 33   │ → IRQ1 (tastiera)
+├──────┤
+│ ...  │
+└──────┘
+         │
+         ▼
+     handler: funzione C o assembly
+```
 
 ## Non ti serve altro (per ora)
 
