@@ -58,14 +58,14 @@ La CPU ha 16 registri generali a 64 bit. Si usano per operazioni aritmetiche, pu
 
 ### Registri speciali
 
-```
-RIP (instruction pointer)         → indirizzo della prossima istruzione
-RFLAGS                            → bandiere: ZF, CF, IF (interrupt), DF
-CR0, CR2, CR3, CR4               → registri di controllo
-  CR3 = radice delle page table  → dice dove sono le tabelle di traduzione
-IDTR                              → base e limite della IDT
-GDTR                              → base e limite della GDT
-```
+| Registro | Descrizione |
+|----------|-------------|
+| RIP (instruction pointer) | indirizzo della prossima istruzione |
+| RFLAGS | bandiere: ZF, CF, IF (interrupt), DF |
+| CR0, CR2, CR3, CR4 | registri di controllo |
+| CR3 | radice delle page table (dice dove sono le tabelle) |
+| IDTR | base e limite della IDT |
+| GDTR | base e limite della GDT |
 
 ## Privilegio: i ring
 
@@ -125,31 +125,21 @@ indirizzo virtuale                   indirizzo fisico
 
 ### Perché la memoria virtuale
 
-```
-Problema                      Soluzione
-──────────────────────────────────────────────────────
-due processi allo stesso      ogni processo ha le
-indirizzo                     proprie page table → isolamento
-programma vede frammentazione il kernel mappa memoria
-fisica                        contigua virtualmente
-kernel deve essere protetto   pagine kernel non accessibili
-da user space                 da ring 3
-```
+| Problema | Soluzione |
+|----------|----------|
+| due processi allo stesso indirizzo | ogni processo ha le proprie page table → isolamento |
+| programma vede frammentazione fisica | il kernel mappa memoria contigua virtualmente |
+| kernel deve essere protetto da user space | pagine kernel non accessibili da ring 3 |
 
 ## Eventi
 
 La CPU genera eventi che interrompono il flusso normale:
 
-```
-Evento            Causa                    Sincrono?
-────────          ─────                    ─────────
-eccezione (fault) divisione per zero,      sì (dovuto
-                   page fault              a un'istruzione)
-interrupt         timer, scheda di rete,   no (arriva quando
-                   tastiera                arriva)
-syscall           chiamata volontaria      sì
-                   da un programma
-```
+| Evento | Causa | Sincrono? |
+|--------|-------|-----------|
+| eccezione (fault) | divisione per zero, page fault | sì (dovuto a un'istruzione) |
+| interrupt | timer, scheda di rete, tastiera | no (arriva quando arriva) |
+| syscall | chiamata volontaria da un programma | sì |
 
 Per gestirli, il kernel installa una IDT (Interrupt Descriptor Table):
 

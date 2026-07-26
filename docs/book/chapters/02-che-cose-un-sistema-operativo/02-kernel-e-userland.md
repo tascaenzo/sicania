@@ -72,20 +72,11 @@ Sicania inizialmente terrà quasi tutto nel kernel (architettura monolitica), ma
 
 ## Perché questa distinzione conta
 
-```
-┌──────────────────────────────────────────────┐
-│  KERNEL:                                      │
-│  - nessuna libreria C (no printf, no malloc)  │
-│  - nessuna protezione dalla memoria           │
-│  - se sbagli: la macchina si blocca           │
-│  - devi parlare direttamente con l'hardware   │
-├──────────────────────────────────────────────┤
-│  USERLAND:                                    │
-│  - hai la libc                                │
-│  - la memoria è protetta                      │
-│  - se sbagli: segmentation fault, non crash   │
-│  - chiami il kernel via syscall               │
-└──────────────────────────────────────────────┘
-```
+| Aspetto | Kernel | Userland |
+|---------|--------|----------|
+| Libreria C | nessuna (no printf, no malloc) | hai la libc |
+| Protezione memoria | nessuna | la memoria è protetta |
+| Errore | la macchina si blocca | segmentation fault, non crash |
+| Accesso hardware | diretto | via syscall |
 
 Quando scriverai codice per Sicania, devi sapere in che livello stai operando. La programmazione kernel è così formativa proprio perché toglie ogni rete di sicurezza.

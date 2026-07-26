@@ -32,43 +32,29 @@ graph TD
 
 ### Opzioni compilatore C
 
-Ogni opzione ha un motivo preciso:
-
-```
-Opzione                  Spiega
-───────────────────────  ─────────────────────────────────
--ffreestanding           nessuna libreria C (no printf,
-                         no malloc, no startup code)
--mno-red-zone            la red zone (128 byte sotto RSP)
-                         viene sovrascritta dagli interrupt.
-                         Nel kernel va disabilitata.
--mno-mmx                 non usare registri MMX
--mno-sse                 non usare registri XMM (non
-                         salviamo/ripristiniamo stato SSE
-                         durante interrupt/context switch)
--mno-sse2                idem per SSE2
--Wall -Wextra            tutti i warning
--O2                      ottimizzazione standard
-```
+| Opzione | Spiega |
+|---------|--------|
+| `-ffreestanding` | nessuna libreria C (no printf, no malloc, no startup code) |
+| `-mno-red-zone` | la red zone (128 byte sotto RSP) viene sovrascritta dagli interrupt. Nel kernel va disabilitata. |
+| `-mno-mmx` | non usare registri MMX |
+| `-mno-sse` | non usare registri XMM (non salviamo/ripristiniamo stato SSE) |
+| `-mno-sse2` | idem per SSE2 |
+| `-Wall -Wextra` | tutti i warning |
+| `-O2` | ottimizzazione standard |
 
 ### Opzioni linker
 
-```
-Opzione                  Spiega
-───────────────────────  ─────────────────────────────────
--T link.ld               usa il nostro linker script
--nostdlib                non cercare libc o startup code
--z max-page-size=0x1000  allinea sezioni a 4 KB (pagina
-                         minima), non a 2 MB
-```
+| Opzione | Spiega |
+|---------|--------|
+| `-T link.ld` | usa il nostro linker script |
+| `-nostdlib` | non cercare libc o startup code |
+| `-z max-page-size=0x1000` | allinea sezioni a 4 KB, non a 2 MB |
 
 ### Opzioni assembler
 
-```
-Opzione                  Spiega
-───────────────────────  ─────────────────────────────────
--f elf64                 produce oggetto ELF64 x86-64
-```
+| Opzione | Spiega |
+|---------|--------|
+| `-f elf64` | produce oggetto ELF64 x86-64 |
 
 ## Output
 

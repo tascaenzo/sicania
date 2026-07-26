@@ -28,17 +28,12 @@ graph TD
 
 ## Cosa fa la GDT di Sicania
 
-```
-Indice   Uso
-──────   ──────────────────────────────────────────
-0        NULL (obbligatorio: primo descrittore
-         deve essere zero, o CPU genera #GP)
-1        Segmento codice (ring 0, long mode,
-         execute/read)
-2        Segmento dati (ring 0, read/write)
-3        TSS (Task State Segment) per IST
-         (16 byte in formato sistema)
-```
+| Indice | Uso |
+|--------|-----|
+| 0 | NULL (obbligatorio: primo descrittore deve essere zero, o CPU genera #GP) |
+| 1 | Segmento codice (ring 0, long mode, execute/read) |
+| 2 | Segmento dati (ring 0, read/write) |
+| 3 | TSS (Task State Segment) per IST (16 byte in formato sistema) |
 
 La nostra GDT è **minimale**: solo ciò che serve per il funzionamento corretto della CPU e per la futura gestione degli interrupt. Non abbiamo segmenti user (ring 3) perché Sicania non esegue ancora processi in user mode.
 

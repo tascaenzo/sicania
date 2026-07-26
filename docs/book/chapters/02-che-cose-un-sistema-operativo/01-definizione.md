@@ -56,42 +56,33 @@ Programma A              Programma B
 
 L'hardware ha capacità finite. Il sistema operativo decide chi usa cosa, quando e per quanto tempo.
 
-```
-Risorsa      Problema              Soluzione del SO
-────────     ────────              ────────────────
-CPU          1 CPU, N processi     scheduling: a turno
-RAM          limitata, contesa     memoria virtuale, protezione
-Disco        accesso lento,       filesystem, cache, journal
-             condiviso
-Rete         pacchetti in          stack di rete, socket
-             arrivo casuale
-```
+| Risorsa | Problema | Soluzione del SO |
+|---------|----------|------------------|
+| CPU | 1 CPU, N processi | scheduling: a turno |
+| RAM | limitata, contesa | memoria virtuale, protezione |
+| Disco | accesso lento, condiviso | filesystem, cache, journal |
+| Rete | pacchetti in arrivo casuale | stack di rete, socket |
 
 ## Macchina estesa
 
 L'hardware è scomodo. Il SO costruisce astrazioni:
 
-```
-Hardware              → Astrazione
-───────────────────────────────────────────────
-CPU + timer           → processo / thread
-RAM                   → memoria virtuale
-disco (settori)       → file / directory
-scheda di rete        → socket
-schermo + tastiera    → terminale
-```
+| Hardware | Astrazione |
+|----------|------------|
+| CPU + timer | processo / thread |
+| RAM | memoria virtuale |
+| disco (settori) | file / directory |
+| scheda di rete | socket |
+| schermo + tastiera | terminale |
 
 ## Protezione
 
 Il SO impedisce che un programma ne danneggi un altro:
 
-```
-Meccanismo            Cosa impedisce
-───────────────────────────────────────────────
-2 livelli di          kernel non accessibile
-privilegio (ring)     dallo spazio utente
-memoria virtuale      un processo non vede la RAM altrui
-syscall               ogni richiesta viene validata
-```
+| Meccanismo | Cosa impedisce |
+|------------|----------------|
+| 2 livelli di privilegio (ring) | kernel non accessibile dallo spazio utente |
+| memoria virtuale | un processo non vede la RAM altrui |
+| syscall | ogni richiesta viene validata |
 
 Queste tre funzioni (risorse, astrazioni, protezione) sono il nucleo di qualunque sistema operativo, incluso Sicania.

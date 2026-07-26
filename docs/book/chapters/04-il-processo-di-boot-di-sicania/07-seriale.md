@@ -29,17 +29,15 @@ Configura la UART per la comunicazione a 115200 baud, 8 bit, nessuna parità, 1 
 
 **Operazioni sui registri:**
 
-```
-Passo  Registro  Valore  Significato
-─────  ────────  ──────  ─────────────────────────────
-1      IER (+1)  0x00    disabilita tutti gli interrupt
-2      LCR (+3)  0x80    attiva DLAB (baud rate divisor latch)
-3      DATA (0)  0x01    divisore basso → 115200 baud
-4      IER (+1)  0x00    divisore alto
-5      LCR (+3)  0x03    DLAB off: 8 bit, no parity, 1 stop
-6      FCR (+2)  0xC7    abilita FIFO, clear, soglia 14 byte
-7      MCR (+4)  0x0B    DTR e RTS attivi
-```
+| Passo | Registro | Valore | Significato |
+|-------|----------|--------|-------------|
+| 1 | IER (+1) | `0x00` | disabilita tutti gli interrupt |
+| 2 | LCR (+3) | `0x80` | attiva DLAB (baud rate divisor latch) |
+| 3 | DATA (0) | `0x01` | divisore basso → 115200 baud |
+| 4 | IER (+1) | `0x00` | divisore alto |
+| 5 | LCR (+3) | `0x03` | DLAB off: 8 bit, no parity, 1 stop |
+| 6 | FCR (+2) | `0xC7` | abilita FIFO, clear, soglia 14 byte |
+| 7 | MCR (+4) | `0x0B` | DTR e RTS attivi |
 
 **Dipende da:** indirizzo I/O `0x3F8` accessibile in QEMU
 **Usata da:** `kernel_main`

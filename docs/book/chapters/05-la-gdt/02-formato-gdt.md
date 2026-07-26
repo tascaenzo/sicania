@@ -50,17 +50,12 @@ Obbligatorio. La CPU si aspetta il primo descrittore = 0. Se non lo è, `lgdt` f
 
 ### Codice ring 0 (indice 1, selector = 0x08)
 
-```
-Campo         Valore binario        Significato
-─────         ────────────────      ─────────────────────
-Access byte   10011010               P=1, DPL=0, S=1,
-                                     E=1(code), C=0(non-conf),
-                                     R=1(readable), A=0
-Flags         00100000               G=0, D=0, L=1(long mode),
-                                     AVL=0
-Limit         0                      (ignorato)
-Base          0                      (ignorato)
-```
+| Campo | Valore binario | Significato |
+|-------|---------------|-------------|
+| Access byte | `10011010` | P=1, DPL=0, S=1, E=1(code), C=0(non-conf), R=1(readable), A=0 |
+| Flags | `00100000` | G=0, D=0, L=1(long mode), AVL=0 |
+| Limit | `0` | (ignorato) |
+| Base | `0` | (ignorato) |
 
 | Proprietà | Valore |
 |-----------|--------|
@@ -73,16 +68,12 @@ Base          0                      (ignorato)
 
 ### Dati ring 0 (indice 2, selector = 0x10)
 
-```
-Campo         Valore binario        Significato
-─────         ────────────────      ─────────────────────
-Access byte   10010010               P=1, DPL=0, S=1,
-                                     E=0(data), W=1(writable),
-                                     A=0
-Flags         00000000               G=0, D=0, L=0, AVL=0
-Limit         0
-Base          0
-```
+| Campo | Valore binario | Significato |
+|-------|---------------|-------------|
+| Access byte | `10010010` | P=1, DPL=0, S=1, E=0(data), W=1(writable), A=0 |
+| Flags | `00000000` | G=0, D=0, L=0, AVL=0 |
+| Limit | `0` | (ignorato) |
+| Base | `0` | (ignorato) |
 
 | Proprietà | Valore |
 |-----------|--------|
@@ -100,26 +91,24 @@ La TSS non è più un segmento attività come in x86-32. In x86-64 serve solo pe
 
 ### Struttura della TSS (104 byte)
 
-```
-Offset  Dimensione   Campo
-──────  ───────────  ─────────────────
-+0      4 byte       riservato
-+4      4 byte       RSP0 (lower)     ← stack per interrupt da ring 3 (futuro)
-+8      4 byte       RSP0 (upper)
-+12     4 byte       RSP1 (lower)
-+16     4 byte       RSP1 (upper)
-+20     4 byte       RSP2 (lower)
-+24     4 byte       RSP2 (upper)
-+28     4 byte       riservato
-+32     4 byte       riservato
-+36     4 byte       IST1 (lower)      ← stack per eccezioni critiche
-+40     4 byte       IST1 (upper)
-+44     4 byte       IST2 (lower)
-+48     4 byte       IST2 (upper)
-...     ...          ...
-+100    2 byte       I/O map base (0xFFFF = nessuna mappa)
-+102    2 byte       riservato
-```
+| Offset | Dimensione | Campo |
+|--------|------------|-------|
+| +0 | 4 byte | riservato |
+| +4 | 4 byte | RSP0 (lower) — stack per interrupt da ring 3 (futuro) |
+| +8 | 4 byte | RSP0 (upper) |
+| +12 | 4 byte | RSP1 (lower) |
+| +16 | 4 byte | RSP1 (upper) |
+| +20 | 4 byte | RSP2 (lower) |
+| +24 | 4 byte | RSP2 (upper) |
+| +28 | 4 byte | riservato |
+| +32 | 4 byte | riservato |
+| +36 | 4 byte | IST1 (lower) — stack per eccezioni critiche |
+| +40 | 4 byte | IST1 (upper) |
+| +44 | 4 byte | IST2 (lower) |
+| +48 | 4 byte | IST2 (upper) |
+| ... | ... | ... |
+| +100 | 2 byte | I/O map base (0xFFFF = nessuna mappa) |
+| +102 | 2 byte | riservato |
 
 Inizialmente impostiamo solo **IST1** con uno stack dedicato per i fault critici (double fault, page fault). Gli altri campi sono zero.
 

@@ -67,14 +67,12 @@ Il kernel viene caricato all'indirizzo virtuale `0xFFFFFFFF80100000` (4 MB + 1 M
 
 ### Sezioni
 
-```
-Sezione    Tipo contenuto    Esempi
-────────   ───────────────   ─────────────────
-.text      codice eseguibile   entry.asm, funzioni C
-.rodata    dati di sola lettura stringhe, tabelle costanti
-.data      dati inizializzati variabili globali con valore
-.bss       zero-inizializzato  stack, variabili senza valore iniziale
-```
+| Sezione | Tipo contenuto | Esempi |
+|---------|----------------|--------|
+| .text | codice eseguibile | entry.asm, funzioni C |
+| .rodata | dati di sola lettura | stringhe, tabelle costanti |
+| .data | dati inizializzati | variabili globali con valore |
+| .bss | zero-inizializzato | stack, variabili senza valore iniziale |
 
 ### Il `.bss` in dettaglio
 

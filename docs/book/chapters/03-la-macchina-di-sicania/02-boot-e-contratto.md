@@ -31,19 +31,17 @@ KERNEL (Sicania)
 
 Quando Limine salta a `_start`, la CPU è in questo stato preciso:
 
-```
-Registro / Stato      Valore                           Note
-────────────────────  ──────────────────────────────   ─────────────────
-Modalità              long mode 64 bit                 EFER.LME = 1
-Privilegio            ring 0                           CPL = 0
-Paging                attivo, 4 livelli                CR0.PG = 1
-Interrupt (IF)        disabilitati                     CLI già eseguito
-Direction flag (DF)   0 (forward)                      CLD già eseguito
-Stack                 valido, ~16KB, allineato 16B     RSP valido ma temporaneo
-Boot info             in RSI (protocollo v6)           struttura versionata
-Red zone              NON usabile                      kernel compilato -mno-red-zone
-SIMD/FPU              NON usabile                      kernel compilato -mno-sse
-```
+| Registro / Stato | Valore | Note |
+|------------------|-------|------|
+| Modalità | long mode 64 bit | EFER.LME = 1 |
+| Privilegio | ring 0 | CPL = 0 |
+| Paging | attivo, 4 livelli | CR0.PG = 1 |
+| Interrupt (IF) | disabilitati | CLI già eseguito |
+| Direction flag (DF) | 0 (forward) | CLD già eseguito |
+| Stack | valido, ~16KB, allineato 16B | RSP valido ma temporaneo |
+| Boot info | in RSI (protocollo v6) | struttura versionata |
+| Red zone | NON usabile | kernel compilato -mno-red-zone |
+| SIMD/FPU | NON usabile | kernel compilato -mno-sse |
 
 ```
 CPU all'entry point:
@@ -148,14 +146,14 @@ grep di test ───────→ verifica che "Sicania" compaia nell'output
 
 Per compilare e avviare Sicania ti servono:
 
-```
-meson, ninja      → build system
-gcc/clang         → compilatore C
-nasm              → assembler x86-64
-ld                → linker
-qemu-system-x86_64 → emulatore
-xorriso           → creare ISO avviabili (opzionale)
-gdb               → debugger (opzionale)
-```
+| Strumento | Ruolo |
+|-----------|-------|
+| meson, ninja | build system |
+| gcc/clang | compilatore C |
+| nasm | assembler x86-64 |
+| ld | linker |
+| qemu-system-x86_64 | emulatore |
+| xorriso | creare ISO avviabili (opzionale) |
+| gdb | debugger (opzionale) |
 
 Nel prossimo capitolo installiamo tutto e specifichiamo ogni componente del primo boot.

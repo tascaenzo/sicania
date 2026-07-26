@@ -4,17 +4,15 @@ Ci sono già tanti progetti didattici di sistemi operativi. Cosa aggiunge Sicani
 
 ## Confronto con altri approcci
 
-```
-                          xv6    Linux da zero    Sicania
-                          ────   ─────────────    ───────
-Linguaggio                C       C                C
-Target                    x86     x86-64           x86-64
-Bootloader                nessuno Limine           Limine
-Build system              Makefile custom         Meson/Ninja
-Test automatici           no      no               sì
-Libro / specifica         codice  nessuno          specifica .md
-Separazione doc/codice    doc     no              doc guida codice
-```
+| Proprietà | xv6 | Linux da zero | Sicania |
+|-----------|-----|---------------|---------|
+| Linguaggio | C | C | C |
+| Target | x86 | x86-64 | x86-64 |
+| Bootloader | nessuno | Limine | Limine |
+| Build system | Makefile custom | custom | Meson/Ninja |
+| Test automatici | no | no | sì |
+| Libro / specifica | codice | nessuno | specifica .md |
+| Separazione doc/codice | doc | no | doc guida codice |
 
 ## Didattico ma vero
 

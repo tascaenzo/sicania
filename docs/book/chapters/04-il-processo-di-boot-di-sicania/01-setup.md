@@ -6,18 +6,16 @@ Prima di scrivere una riga di kernel, installiamo gli strumenti necessari.
 
 Il kernel è un programma *freestanding*: nessuna libreria C, nessun runtime. Servono strumenti specifici.
 
-```
-Strumento        Ruolo                              Versione minima
-────────         ─────                              ───────────────
-gcc / clang      compilatore C freestanding         12 / 16
-nasm             assembler x86-64                   2.15
-ld (GNU)         linker per ELF64                   binutils 2.38
-meson            build system                       1.0
-ninja            esecutore build                    1.10
-qemu-system-x86  emulatore di macchina x86-64       7.0
-xorriso          creatore ISO (serve per avviare)   1.5
-gdb              debugger (opzionale ma utile)      13
-```
+| Strumento | Ruolo | Versione minima |
+|-----------|-------|----------------|
+| gcc / clang | compilatore C freestanding | 12 / 16 |
+| nasm | assembler x86-64 | 2.15 |
+| ld (GNU) | linker per ELF64 | binutils 2.38 |
+| meson | build system | 1.0 |
+| ninja | esecutore build | 1.10 |
+| qemu-system-x86 | emulatore di macchina x86-64 | 7.0 |
+| xorriso | creatore ISO (serve per avviare) | 1.5 |
+| gdb | debugger (opzionale ma utile) | 13 |
 
 ## Installazione
 

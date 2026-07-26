@@ -64,17 +64,15 @@ Quando serviranno, riceverà un puntatore a `boot_info` (o userà le strutture L
 
 Prima che `kernel_main` venga chiamata, queste condizioni devono essere vere:
 
-```
-Condizione                   Garantita da           Verificata da
-───────────────────────────  ───────────────────    ─────────────────
-Stack valido e allineato    entry.asm (mov rsp)     convenzione ABI
-.bss azzerato               Limine / bootloader     linker script
-DF=0                        entry.asm (cld)         ABI Limine
-Interrupt disabilitati      entry.asm (da Limine)   ABI Limine
-Nessuna red zone            flag compilatore        meson.build
-Nessun SIMD/FPU             flag compilatore        meson.build
-Nessuna libreria C          flag compilatore        -ffreestanding
-```
+| Condizione | Garantita da | Verificata da |
+|------------|--------------|---------------|
+| Stack valido e allineato | entry.asm (mov rsp) | convenzione ABI |
+| .bss azzerato | Limine / bootloader | linker script |
+| DF=0 | entry.asm (cld) | ABI Limine |
+| Interrupt disabilitati | entry.asm (da Limine) | ABI Limine |
+| Nessuna red zone | flag compilatore | meson.build |
+| Nessun SIMD/FPU | flag compilatore | meson.build |
+| Nessuna libreria C | flag compilatore | -ffreestanding |
 
 ## Gestione errori
 

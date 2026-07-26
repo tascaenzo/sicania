@@ -36,13 +36,11 @@ Durante lo sviluppo vogliamo `0` per non aspettare. In futuro, con più voci di 
 
 Limine supporta diversi protocolli di boot:
 
-```
-Protocollo   Uso
-──────────   ─────────────────────────────────
-limine       protocollo nativo (usiamo questo)
-multiboot2   compatibilità con GRUB
-stivale      protocollo alternativo leggero
-```
+| Protocollo | Uso |
+|------------|-----|
+| limine | protocollo nativo (usiamo questo) |
+| multiboot2 | compatibilità con GRUB |
+| stivale | protocollo alternativo leggero |
 
 Noi usiamo `limine`, che dà accesso a tutte le funzionalità: mappa memoria, moduli, framebuffer, ACPI, SMBIOS, ecc.
 
@@ -50,13 +48,11 @@ Noi usiamo `limine`, che dà accesso a tutte le funzionalità: mappa memoria, mo
 
 Il percorso è relativo alla radice del filesystem dell'immagine ISO:
 
-```
-Percorso                     Posizione nell'ISO
-─────────                    ──────────────────
-boot:/sicania.elf             /boot/sicania.elf
-:/kernel.elf                  /kernel.elf
-boot:/sub/dir/kernel.elf      /boot/sub/dir/kernel.elf
-```
+| Percorso | Posizione nell'ISO |
+|----------|-------------------|
+| `boot:/sicania.elf` | `/boot/sicania.elf` |
+| `:/kernel.elf` | `/kernel.elf` |
+| `boot:/sub/dir/kernel.elf` | `/boot/sub/dir/kernel.elf` |
 
 Noi useremo `boot:/sicania.elf`. Il kernel va copiato in `iso/boot/sicania.elf` quando creiamo l'immagine.
 

@@ -57,34 +57,30 @@ stack_top:
 
 ### `_start` vs `kernel_main`
 
-```
-_start            kernel_main
-──────            ───────────
-assembly          C
-imposta RSP       usa RSP (grazie a _start)
-normalizza DF     non tocca DF
-non ritorna       non deve ritornare
-chiama kernel     chiama serial_init, serial_write
-gestisce panic    (nessun panic, è il panic)
-```
+| Proprietà | `_start` | `kernel_main` |
+|-----------|----------|---------------|
+| Linguaggio | assembly | C |
+| RSP | imposta RSP | usa RSP (grazie a _start) |
+| DF | normalizza DF | non tocca DF |
+| Ritorno | non ritorna | non deve ritornare |
+| Chiama | kernel | serial_init, serial_write |
+| Panic | gestisce panic | (nessun panic, è il panic) |
 
 ## Convenzioni ABI all'ingresso
 
 Limite garantisce questo stato quando salta a `_start`:
 
-```
-Registro/Stato         Valore                    Perché
-─────────────────      ─────────────────────     ─────────────────────
-Modalità CPU           long mode 64 bit          dobbiamo operare a 64 bit
-Privilegio (CPL)       ring 0                    possiamo fare tutto
-Paging                 attivo, 4 livelli         già mappato da Limine
-IF (interrupt flag)    0 (disabilitati)          nessun interrupt inatteso
-DF (direction flag)    0 (forward)               CLD già eseguito da Limine
-RSP                    allineato a 16B           chiamate C funzionano
-RSI                    puntatore boot info       da salvare se serve
-Red zone               NON disponibile           compilerà con -mno-red-zone
-SIMD/FPU               NON disponibile           compilerà con -mno-sse
-```
+| Registro / Stato | Valore | Perché |
+|------------------|-------|--------|
+| Modalità CPU | long mode 64 bit | dobbiamo operare a 64 bit |
+| Privilegio (CPL) | ring 0 | possiamo fare tutto |
+| Paging | attivo, 4 livelli | già mappato da Limine |
+| IF (interrupt flag) | 0 (disabilitati) | nessun interrupt inatteso |
+| DF (direction flag) | 0 (forward) | CLD già eseguito da Limine |
+| RSP | allineato a 16B | chiamate C funzionano |
+| RSI | puntatore boot info | da salvare se serve |
+| Red zone | NON disponibile | compilerà con -mno-red-zone |
+| SIMD/FPU | NON disponibile | compilerà con -mno-sse |
 
 ## Perché l'entry point fa solo questo
 
